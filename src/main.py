@@ -1,5 +1,6 @@
-from os import listdir, path
+from os import path
 import time
+import argparse
 
 from ocr_apis.azure_ocr_api import *
 from ocr_apis.google_ocr_api import *
@@ -8,13 +9,23 @@ from ocr_apis.watson_ocr_api import *
 
 def main():
 
-    api_name = 'azure' # aws google azure watson
+    # Argument parsing
+    parser = argparse.ArgumentParser(description='Call an API Text Recognition API services')
+    parser.add_argument('img', nargs='+',
+                        help='Path to the image')
+    parser.add_argument('--api', dest='api', required=True, choices=['aws','google','azure','watson'],
+                        help='Path to the image')
+    parser.add_argument('--gen-json', dest='gen_json', action='store_true',
+                        help='Call API service to obtain JSON results')
+    parser.add_argument('--gen-img', dest='gen_img', action='store_true',
+                        help='Generate image with JSON results over it')
+    args = parser.parse_args()
 
-    images_dir = "../images/"
-    image_list = [images_dir + filename for filename in listdir(images_dir)]
-
-    call_service = False
-    gen_graphics_results = True
+    # Parsed arguments
+    api_name = args.api
+    image_list = args.img
+    call_service = args.gen_json
+    gen_graphics_results = args.gen_img
 
     # General configuration
     wait_secs = 0
@@ -36,6 +47,7 @@ def main():
     else:
         raise Exception("Invalid API name")
 
+    # Process each image
     for filepath in sorted(image_list):
         filename = path.basename(filepath)
         print("Processing %s ..." % filename)
@@ -43,10 +55,14 @@ def main():
         jsonpath = result_dir + basename + ".json"
         graphpath = result_dir + basename + "-results.jpg"
         if call_service:
+            print("\tCalling API ...", end='', flush=True)
             time.sleep(wait_secs)
             api.process_image_file(filepath, jsonpath)
+            print(" DONE")
         if gen_graphics_results:
+            print("\tGenerating image with API results ...", end='', flush=True)
             api.gen_graphics_results(filepath, jsonpath, graphpath)
+            print(" DONE")
 
 if __name__ == "__main__":
     main()
